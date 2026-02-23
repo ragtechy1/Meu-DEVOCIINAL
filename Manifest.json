@@ -1,0 +1,15 @@
+{
+  "name": "Meu Devocional Diário",
+  "short_name": "Devocional",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f8f9fa",
+  "theme_color": "#6d5b4b",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2600/2600757.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

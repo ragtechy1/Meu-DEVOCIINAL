@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Devocional Diário</title>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#6d5b4b">
+    <link rel="manifest" href="manifest.json">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f8f9fa;
+            --card: #ffffff;
+            --text: #1a1a1a;
+            --text-light: #666;
+            --accent: #6d5b4b;
+            --accent-soft: #f2ede9;
+            --success: #4caf50;
+            --transition: all 0.3s ease;
+        }
+
+        [data-theme="dark"] {
+            --bg: #121212;
+            --card: #1e1e1e;
+            --text: #e0e0e0;
+            --text-light: #aaa;
+            --accent: #d4bc9e;
+            --accent-soft: #2d2a27;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .controls {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: 2px solid var(--accent-soft);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: var(--card);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+            border-radius: 32px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .date-container {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: var(--accent);
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-badge {
+            display: none;
+            background: var(--success);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 0.6rem;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.2rem;
+            line-height: 1.2;
+            margin-bottom: 25px;
+        }
+
+        .bible-box {
+            background: var(--accent-soft);
+            padding: 25px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid var(--accent);
+        }
+
+        .verse-text { font-style: italic; margin-bottom: 10px; font-size: 1.1rem; }
+        .reference { font-weight: 600; color: var(--accent); font-size: 0.9rem; }
+
+        .reflection-content {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: var(--text-light);
+            margin-bottom: 30px;
+        }
+
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+        .btn {
+            padding: 15px;
+            border-radius: 15px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-secondary { background: var(--accent-soft); color: var(--text); }
+        .btn-success { background: var(--success); color: white; }
+
+        .btn:active { transform: scale(0.98); }
+    </style>
+</head>
+<body data-theme="light">
+
+    <div class="controls">
+        <button class="theme-toggle" onclick="toggleTheme()">🌓 Alternar Tema</button>
+    </div>
+
+    <main class="card">
+        <div class="date-container">
+            <span id="dateText">Carregando data...</span>
+            <span id="statusBadge" class="status-badge">LIDO HOJE ✓</span>
+        </div>
+
+        <h1 id="devTitle">...</h1>
+
+        <div class="bible-box">
+            <p class="verse-text" id="devVerse">...</p>
+            <span class="reference" id="devRef">...</span>
+        </div>
+
+        <div class="reflection-content" id="devText">Carregando sua reflexão...</div>
+
+        <div class="actions">
+            <button class="btn btn-secondary" onclick="share()">Compartilhar</button>
+            <button class="btn btn-primary" id="btnStatus" onclick="toggleReadStatus()">Concluir Leitura</button>
+        </div>
+    </main>
+
+    <script>
+        async function init() {
+            try {
+                // Carrega o JSON com um timestamp para evitar cache
+                const response = await fetch('devocional.json?t=' + new Date().getTime());
+                const database = await response.json();
+
+                const today = new Date();
+                document.getElementById('dateText').innerText = today.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' });
+
+                // Lógica de seleção por dia do ano
+                const start = new Date(today.getFullYear(), 0, 0);
+                const diff = today - start;
+                const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const content = database[dayOfYear % database.length];
+
+                // Preenche os dados
+                document.getElementById('devTitle').innerText = content.t;
+                document.getElementById('devVerse').innerText = `"${content.v}"`;
+                document.getElementById('devRef').innerText = content.r;
+                document.getElementById('devText').innerText = content.p;
+
+                // Checa estado de leitura e tema
+                checkReadStatus(today.toDateString());
+                if(localStorage.getItem('theme') === 'dark') toggleTheme(true);
+
+            } catch (e) {
+                document.getElementById('devText').innerText = "Erro ao carregar devocionais. Use o Live Server.";
+                console.error(e);
+            }
+        }
+
+        function toggleReadStatus() {
+            const today = new Date().toDateString();
+            const lastRead = localStorage.getItem('lastReadDate');
+            
+            if (lastRead === today) {
+                localStorage.removeItem('lastReadDate');
+            } else {
+                localStorage.setItem('lastReadDate', today);
+            }
+            checkReadStatus(today);
+        }
+
+        function checkReadStatus(todayStr) {
+            const isRead = localStorage.getItem('lastReadDate') === todayStr;
+            const btn = document.getElementById('btnStatus');
+            const badge = document.getElementById('statusBadge');
+
+            if (isRead) {
+                badge.style.display = 'block';
+                btn.innerText = 'Desmarcar Lido';
+                btn.className = 'btn btn-success';
+            } else {
+                badge.style.display = 'none';
+                btn.innerText = 'Concluir Leitura';
+                btn.className = 'btn btn-primary';
+            }
+        }
+
+        function toggleTheme(forceDark = false) {
+            const body = document.body;
+            const isDark = body.getAttribute('data-theme') === 'dark';
+            const target = forceDark ? 'dark' : (isDark ? 'light' : 'dark');
+            body.setAttribute('data-theme', target);
+            localStorage.setItem('theme', target);
+        }
+
+        function share() {
+            const text = `${document.getElementById('devTitle').innerText}\n${document.getElementById('devVerse').innerText}`;
+            if (navigator.share) navigator.share({ title: 'Meu Devocional', text: text });
+            else { alert("Copiado!"); navigator.clipboard.writeText(text); }
+        }
+
+        init();
+    </script>
+</body>
+</html>
